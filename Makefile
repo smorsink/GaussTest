@@ -11,6 +11,7 @@ ROBJ=Readin.o fitness.o bayes.o nrutil.o # defining the objects
 POBJ=ProbCont.o nrutil.o
 MOBJ=Metrop.o nrutil.o bayes.o
 GOBJ=GaussTest1d.o nrutil.o bayes.o
+LOBJ=LogLike1d.o nrutil.o bayes.o
 GGOBJ=GaussTest2d.o nrutil.o bayes.o
 MMOBJ=Metrop2d.o nrutil.o bayes.o
 
@@ -30,6 +31,9 @@ metrop: Metrop.o $(MOBJ)
 
 gauss1d: GaussTest1d.o $(GOBJ)
 	$(CC) $(CCFLAGS) $(GOBJ) $(LDFLAGS) -o gauss1d
+
+loglike1d: LogLike1d.o $(LOBJ)
+	$(CC) $(CCFLAGS) $(LOBJ) $(LDFLAGS) -o loglike1d
 
 gauss2d: GaussTest2d.o $(GGOBJ)
 	$(CC) $(CCFLAGS) $(GGOBJ) $(LDFLAGS) -o gauss2d
@@ -69,6 +73,13 @@ GaussTest1d.o: \
 	nrutil.h \
 	Makefile
 	$(CC) $(CCFLAGS) -c GaussTest1d.cpp
+
+LogLike1d.o: \
+	LogLike1d.cpp \
+	nrutil.h \
+	Makefile
+	$(CC) $(CCFLAGS) -c LogLike1d.cpp
+
 
 GaussTest2d.o: \
 	GaussTest2d.cpp \
