@@ -34,19 +34,20 @@ int main ( int argc, char** argv ) try {  // argc, number of cmd line args;
   std::ifstream in;      // output stream; printing information to the output file
   char in_file[256] = "Nothing!";
 
-  unsigned int nsteps(100);
-
+  unsigned int nsteps(100), NN(10000);
+  unsigned int chainlength(10);
 
   double
-    xlo(-22.0), xhi(22.0);
+    xlo(-23.0), xhi(23.0);
   double
-    ylo(-22.0), yhi(22.0);
+    ylo(-23.0), yhi(23.0);
   int
     numbins(500);
 
   struct Prob1d xx, yy;
   struct Prob2d contours;
 
+  double fudge(1.0);
 
   /*********************************************************/
   /* READING IN PARAMETERS FROM THE COMMAND LINE ARGUMENTS */
@@ -76,15 +77,24 @@ int main ( int argc, char** argv ) try {  // argc, number of cmd line args;
 	      sscanf(argv[i+1], "%u",&numbins);
 	      break;
 
-	                
+	    case 'p': // Number of probability bins
+	      sscanf(argv[i+1], "%u",&NN);
+	      break;
+
+	    case 'f': // Fudge Factor
+	      sscanf(argv[i+1], "%lf",&fudge);
+	      break;
+
+	    case 'c': // Chainlength
+	      sscanf(argv[i+1], "%u",&chainlength);
+	      break;
+	      
             } // end switch	
         } // end if
     } // end for
 
  
     long int **histogram = imatrix(1,numbins,1,numbins);
-
-
     double **probability = dmatrix(1,numbins,1,numbins);
     double *xprob = dvector(1,numbins);
     double *yprob = dvector(1,numbins);
@@ -97,36 +107,85 @@ int main ( int argc, char** argv ) try {  // argc, number of cmd line args;
     dy = (yhi - ylo)/(1.0*numbins);
 
     for (unsigned int i(1); i<=numbins; i++){
-
       xvals[i] = xlo + (0.5 + i - 1)*dx;
       yvals[i] = ylo + (0.5 + i - 1)*dy;
-      /* std::cout << " bin = " << i
-		<< " bin centre = " << xvals[i] 
-		<< " left edge = " << xvals[i] - 0.5*dx
-		<< std::endl;*/
-
-      //histogram[i] = 0;
-
     }
+    std::cout << "dx = " << dx << " dy = " << dy << std::endl;
+
     for (unsigned int i(1);i<=numbins; i++)
       for (unsigned int j(1); j<=numbins; j++)
 	histogram[i][j] = 0;
-
-
+    
     int xbin, ybin;
+
+    int bin;
+
+    //double dmean, dsig;
+    //double meanhi(10.0), meanlo(-10.0), sighi(50.0),siglo(0.0);
+
+    double *dmean = dvector(1,2);
+    double *dsig = dvector(1,2);
+    double *meanhi = dvector(1,2);
+    double *meanlo = dvector(1,2);
+    double *sighi = dvector(1,2);
+    double *siglo = dvector(1,2);
+
+    // Initialize 1e2
+    /* meanhi[1] = 0.1;
+    meanlo[1] = -0.1;
+    meanhi[2] = 5.0;
+    meanlo[2] = -5.0;
+
+    sighi[1] = 2.0;
+    siglo[1] = 0.0;
+    sighi[2] = 20.0;
+    siglo[2] = 0.0;*/
+
+    // Initialize 1e4
+    meanhi[1] = 0.1;
+    meanlo[1] = -0.1;
+    meanhi[2] = 4.0;
+    meanlo[2] = -4.0;
+
+    sighi[1] = 1.0;
+    siglo[1] = 0.0;
+    sighi[2] = 15.0;
+    siglo[2] = 5.0;
+
+
+    
+
+    for (unsigned int j(1); j<=2; j++){
+      dmean[j] = (meanhi[j]-meanlo[j])/(1.0*NN);
+      std::cout << "delta(mean["<< j << "]=" << dmean[j] << std::endl;
+      dsig[j] = (sighi[j]-siglo[j])/(1.0*NN);
+      std::cout << "delta(sig["<< j << "]=" << dsig[j] << std::endl;
+    }
+    
+    double **probmean = dmatrix(1,2,1,NN);
+    double **probsig = dmatrix(1,2,1,NN);
+    double **meanvals = dmatrix(1,2,1,NN);
+    double **sigvals = dmatrix(1,2,1,NN);
+
+    // j=1 is "-" solution
+    // j=2 is "+" solution
+    for (unsigned int i(1); i<=NN; i++){
+      for (unsigned int j(1);j<=2;j++){
+      meanvals[j][i] = meanlo[j] + (0.5+i-1)*dmean[j];
+      sigvals[j][i] = siglo[j] + (0.5+i-1)*dsig[j];
+      probmean[j][i]=0.0;
+      probsig[j][i] = 0.0;
+      }
+    }
 
     // Set up x-bins for storing the histogram
 
-  double x1(0.0), x2(0.0);
-  double y1(0.0), y2(0.0);
-
+  double x1(0.0);
+  double y1(0.0);
   double xave(0.0), yave(0.0);
 
-  // Create Initial Step 
-  x1=-2.0;
-  y1=-2.0;
-
-   in.open(in_file);
+  // Read in the Data file
+  in.open(in_file);
 
    for ( unsigned int i(0); i < nsteps; i++){
 
@@ -169,15 +228,17 @@ int main ( int argc, char** argv ) try {  // argc, number of cmd line args;
        totprob += histogram[i][j];
      }
    }
-
+   std::cout << "totprob = " << totprob << std::endl;
    // Normalize the probability
    for (unsigned int i(1); i<=numbins; i++){
      for (unsigned int j(1); j<=numbins; j++){
-       probability[i][j] = histogram[i][j]/(1.0*totprob*dx*dy);
+       probability[i][j] = 4.0*histogram[i][j]/(1.0*totprob*dx);
+       /*std::cout << "hist[i][j] = " << histogram[i][j]
+		 << " data[i][j] = " << probability[i][j]
+		 << std::endl;*/
      }
    }
    // Probability is normalized so integral over x and y yields 1.0
-
    // totprob = 0.0;
    //Integrate over y to get the xprobability 
    for (unsigned int i(1); i<=numbins; i++){
@@ -187,9 +248,6 @@ int main ( int argc, char** argv ) try {  // argc, number of cmd line args;
      }
      //totprob += xprob[i]*dx;
    }
-
-
- 
    for (unsigned int j(1); j<=numbins; j++){
      yprob[j] = 0.0;
      for (unsigned int i(1); i<=numbins; i++){
@@ -198,6 +256,164 @@ int main ( int argc, char** argv ) try {  // argc, number of cmd line args;
      //totprob += yprob[j]*dy;
    }
 
+
+   // Create a proposal and evaluate log(likelyhood)
+   
+   double *mean1 = dvector(1,2);
+   double *sig1 = dvector(1,2);
+   double *mean2 = dvector(1,2);
+   double *sig2 = dvector(1,2);
+   double *meanave = dvector(1,2);
+   double *sigave = dvector(1,2);
+
+   double **prob1 = dmatrix(1,numbins,1,numbins);
+   double **prob2 = dmatrix(1,numbins,1,numbins);
+
+   double ll1,ll2;
+   
+   //Initialize
+   mean1[1] = -0.00035;
+   //mean1[1] = 0.001;
+   mean1[2] = -0.1591;
+   sig1[1] = 0.0987;
+   sig1[2] = 10.025;
+
+   // sig1[1] = 0.1;
+
+   
+   GaussProbDist2d(xvals, yvals, prob1,mean1,sig1,numbins);
+   ll1 = ProbCompare2d(probability,prob1,numbins);
+
+   out.precision(7);
+    out.open("test.txt");
+   for (unsigned int i(1);i<=numbins;i++){
+     for (unsigned int j(1);j<=numbins;j++){
+
+       out << xvals[i] << "\t"
+	   << yvals[j] << "\t"
+	   << probability[i][j] << "\t"
+	   << prob1[i][j] <<"\t"
+	   << histogram[i][j]
+	   << std::endl;
+
+     }
+   }
+   out.close();
+   
+   std::cout << "First Choice"
+	      << " mean- = " << mean1[1] << " mean+ = " << mean1[2]
+		  << " sig-  = " << sig1[1]
+     		  << " sig+  = " << sig1[2]
+		  << " ll1 = " << ll1
+		  << std::endl;
+
+    out.open("trace.txt");
+
+   
+    srand(time(NULL));   // should only be called once
+    
+    double *qsigmean = dvector(1,2);
+    double *qsigsig = dvector(1,2);
+
+    qsigmean[1] = 0.001;
+    qsigmean[2] = 0.01;
+    qsigsig[1] = 0.001;
+    qsigsig[2] = 0.05;
+    
+    double r, yes(0), acceptance;
+
+    for (unsigned int i(0); i < chainlength; i++){ // M-T loop
+   
+      // Draw a new value for mean and sigma from the Proposal Distribution
+      for (unsigned int j(1);j<=2; j++){
+	//Compute running totals for averages
+	meanave[j] += mean1[j];
+	sigave[j] += sig1[j];
+
+	//mean2[j] = mean1[j];
+	//sig2[j] = sig1[j];
+
+	// Create a new proposal
+	mean2[j] = NormalDev(mean1[j],qsigmean[j]*fudge);
+	sig2[j] = NormalDev(sig1[j],qsigsig[j]*fudge);
+	
+      }
+
+      //mean2[1] = NormalDev(mean1[1],qsigmean[1]*fudge);
+
+      if ( sig2[1] > 0 && sig2[2] > 0){
+	GaussProbDist2d(xvals, yvals, prob2,mean2,sig2,numbins);
+	ll2 = ProbCompare2d(probability,prob2,numbins);
+      }
+      else
+	ll2 = -10000000.0;
+
+      for (unsigned int j(1);j<=2; j++){
+	if (mean2[j] < meanlo[j] || mean2[j] > meanhi[j]){
+	  std::cout << "mean2 = " << mean2[j] << " is out of bounds! Increase them!" << std::endl;
+	  ll2 = -1000000.0;
+	}
+	if (sig2[j] < siglo[j] || sig2[j] > sighi[j]){
+	  std::cout << "sig2 = " << sig2[j] << " is out of bounds! Increase them!" << std::endl;
+	  ll2 = -1000000.0;
+	}
+      }
+      
+      /* std::cout << "i = " << i
+	<< " Second Choice"
+	      << " mean- = " << mean2[1] << " mean+ = " << mean2[2]
+		  << " sig-  = " << sig2[1]
+     		  << " sig+  = " << sig2[2]
+		  << " ll2 = " << ll2
+		  << std::endl;*/
+
+      r = Rand1();
+
+      if ( ll2 - ll1 > log(r)){ // Accept the new step!
+
+	/*	std::cout << "Accept the new step: ll2 - ll1 = " << ll2 - ll1
+		<< " >  log(r) = " << log(r) << std::endl;*/
+	
+	for (unsigned int j(1);j<=2;j++){
+	  mean1[j] = mean2[j];
+	  sig1[j] = sig2[j];
+	}
+	ll1 = ll2;
+	yes += 1;
+	acceptance = yes/(1.0*i);
+	//para1 = para2;
+
+	for (unsigned int j(1);j<=2;j++){
+	  bin = (mean1[j]-meanlo[j])/dmean[j] + 1;
+	  //std::cout << " bin mean = " << bin << std:endl;
+	  probmean[j][bin] += 1;
+	  bin = (sig1[j]-siglo[j])/dsig[j] + 1;
+	  //std::cout << " bin mean = " << bin << std:endl;
+	  probsig[j][bin] += 1;
+	}
+	if (i%10==0)
+	  out << i << "\t"
+	      << mean1[1] << "\t"
+	      << sig1[1] << "\t"
+	      << mean1[2] << "\t"
+	      << sig1[2] << "\t"
+	      << ll1 << "\t"
+	      << acceptance << std::endl;
+      }
+      else{ // Reject the new step!
+
+	/*	std::cout << "Reject the new step: ll2 - ll1 = " << ll2 - ll1
+		<< " <  log(r) = " << log(r) << std::endl;*/
+
+	
+      }      
+    } // End of M_T loop
+
+      std::cout << "Average Value of the Mean-  = " << meanave[1]/(chainlength*1.0) << std::endl;
+    std::cout << "Average Value of the StdDev- = " << sigave[1]/(chainlength*1.0) << std::endl;
+     std::cout << "Average Value of the Mean+  = " << meanave[2]/(chainlength*1.0) << std::endl;
+    std::cout << "Average Value of the StdDev+ = " << sigave[2]/(chainlength*1.0) << std::endl;
+   
 
    out.open(out_filex);
    for (unsigned int i(1); i<=numbins; i++){

@@ -23,7 +23,10 @@
 
 double Rand1(){
   // Return a random number between 0 and 1
-  // Most basic random number generator. 
+  // Most basic random number generator.
+
+  //std::cout << "Random Number = " << rand()/(1.0*RAND_MAX) << std::endl;
+  
   return( rand()/(1.0*RAND_MAX) );
 }
 
@@ -56,44 +59,103 @@ double ProbCompare(double *prob1, double *prob2, int numbins){
 
   double loglikelihood(0.0);
   double xxx;
-  for (unsigned int i(1);i<numbins;i++){
-
-    /*  std::cout << "i = " << i
-	      << " data[i] = " << prob1[i]
-	      << " dist[i] = " << prob2[i];*/
-	     
-
+  for (unsigned int i(1);i<=numbins;i++){
     if (prob1[i] == 0.0)
       loglikelihood += prob2[i];
     else{
       xxx=prob2[i]/prob1[i];
       loglikelihood += - prob1[i] * (log(xxx) + 1.0 - xxx);
     }
-    // std::cout << " llog = " << loglikelihood << std::endl;
+    /* std::cout << "i = " << i
+	      << " data[i] = " << prob1[i]
+	      << " dist[i] = " << prob2[i];
+    
+	      std::cout << " llog = " << -loglikelihood << std::endl;*/
+  }
+  return (-loglikelihood);
+}
 
+double ProbCompare2d(double **prob1, double **prob2, int numbins){
+
+  double loglikelihood(0.0);
+  double xxx;
+  for (unsigned int i(1);i<=numbins;i++){
+    for (unsigned int j(1);j<=numbins;j++){
+    if (prob1[i][j] == 0.0)
+      loglikelihood += prob2[i][j];
+    else{
+      if (prob2[i][j] == 0.0)
+	loglikelihood += 0.5*prob1[i][j];
+      else{
+	xxx=prob2[i][j]/prob1[i][j];
+	loglikelihood += - prob1[i][j] * (log(xxx) + 1.0 - xxx);
+      }
+    }
+    /* std::cout << "i = " << i
+	       << " j = " << j
+	      << " data[i][j] = " << prob1[i][j]
+	      << " dist[i][j] = " << prob2[i][j];
+	      std::cout << " llog = " << -loglikelihood << std::endl;    */
+	     
+    }
   }
 
-  return (-loglikelihood);
 
+  return (-loglikelihood);
 }
+
+
 
 void GaussProbDist(double *xvals, double *prob, double mean, double sig, unsigned int numbins){
 
-  //  std::cout << "mean = " << mean 
-  //	    << " sigma = " << sig
-  //	    << std::endl;
+  /*std::cout << "mean = " << mean 
+  	    << " sigma = " << sig
+  	    << std::endl;*/
 
   for (unsigned int i(1); i<=numbins; i++){
 
     prob[i] = Gaussian(xvals[i], mean, sig);
 
-    /* std::cout << "i = " << i
+    /*std::cout << "i = " << i
 	      << " x = " << xvals[i]
 	      << " prob = " << prob[i]
 	      << std::endl;*/
 
   }
 }
+
+void GaussProbDist2d(double *xvals, double *yvals, double **prob, double *mean, double *sig, unsigned int numbins){
+
+  //compute 2d tilted gaussian
+  double xplus, xminus;
+
+  /*std::cout << "mean- = " << mean[1]
+	    << " mean+ = " << mean[2]
+	    << " sig- = " << sig[1]
+	    << " sig+ = " << sig[2]
+	    << std::endl;*/
+
+  for (unsigned int i(1); i<=numbins; i++){
+    for (unsigned int j(1); j<=numbins; j++){
+
+      xplus = xvals[i] + yvals[j];
+      xminus = xvals[i] - yvals[j];
+
+      prob[i][j] = 1.0/(3.1415192653589793 * sig[1]*sig[2]) *
+	exp( -0.5 * pow( (xminus - mean[1])/sig[1],2) -0.5 * pow( (xplus-mean[2])/sig[2],2));
+
+      //prob[i][j] /= 1.0;
+
+      /*std::cout << "i=" << i << " x_p = " << xplus
+		<< " j=" << j << " x_m = " << xminus
+		<< " prob = " << prob[i][j] 
+		<< std::endl;*/
+      
+    }
+  }  
+}
+
+
 
 double Gaussian(double x, double mu, double sig){
   // Probability of x 
@@ -118,9 +180,9 @@ double Gaussian2d(double x, double y, double *mean, double **var){
 // Compute the Probability Contours for a 1D distribution
 struct Prob1d ProbContours1D(double *xvals, double *probability, double average, unsigned int numbins ){
 
-  std::cout << "Hello World! Average = "
-	    << average
-	    << std::endl;
+  //std::cout << "Hello World! Average = "
+  //	    << average
+  //	    << std::endl;
 
   struct Prob1d x;
 
@@ -150,33 +212,33 @@ struct Prob1d ProbContours1D(double *xvals, double *probability, double average,
      if ( cumul >= 0.0015 && xl3==xlo ){
        xl3 = xvals[i];
        pl3 = probability[i];
-       std::cout << "3 sig: " << " xl3 = " << xl3 << " cumul = " << pl3 << std::endl;
+       //std::cout << "3 sig: " << " xl3 = " << xl3 << " cumul = " << pl3 << std::endl;
        // Interpolate
        xl3 = xvals[i-1] + (xvals[i]-xvals[i-1]) * (0.0015 - (cumul-probability[i]))/probability[i];
        pl3 = probability[i-1] + (probability[i]-probability[i-1])/(xvals[i]-xvals[i-1]) * (xl3-xvals[i-1]);
-       std::cout << "3 sig: " << " xl3 = " << xl3 << " prob = " << pl3 << std::endl;
+       //std::cout << "3 sig: " << " xl3 = " << xl3 << " prob = " << pl3 << std::endl;
      }
      
      // check for 2sigma
      if ( cumul >= 0.02275 && xl2==xlo ){
        xl2 = xvals[i];
        pl2 = probability[i];
-       std::cout << "2 sig: " << " xl2 = " << xl2 << " cumul = " << pl2 << std::endl;
+       //std::cout << "2 sig: " << " xl2 = " << xl2 << " cumul = " << pl2 << std::endl;
        xl2 = xvals[i-1] + (xvals[i]-xvals[i-1]) * (0.02275 - (cumul-probability[i]))/probability[i];
        pl2 = probability[i-1] + (probability[i]-probability[i-1])/(xvals[i]-xvals[i-1]) * (xl2-xvals[i-1]);
 
-       std::cout << "2 sig: " << " xl2 = " << xl2 << " prob = " << pl2 << std::endl;
+       //std::cout << "2 sig: " << " xl2 = " << xl2 << " prob = " << pl2 << std::endl;
 
      }
      // check for 1sigma
      if ( cumul >= 0.158655 && xl1==xlo ){
        xl1 = xvals[i];
        pl1 = probability[i];
-       std::cout << "1 sig: " << " xl1 = " << xl1 << " cumul = " << pl1 << std::endl;
+       //std::cout << "1 sig: " << " xl1 = " << xl1 << " cumul = " << pl1 << std::endl;
        xl1 = xvals[i-1] + (xvals[i]-xvals[i-1]) * (0.158655 - (cumul-probability[i]))/probability[i];
        pl1 = probability[i-1] + (probability[i]-probability[i-1])/(xvals[i]-xvals[i-1]) * (xl1-xvals[i-1]);
 
-       std::cout << "1 sig: " << " xl1 = " << xl1 << " prob = " << pl1 << std::endl;
+       //std::cout << "1 sig: " << " xl1 = " << xl1 << " prob = " << pl1 << std::endl;
 
      }
 
@@ -184,11 +246,11 @@ struct Prob1d ProbContours1D(double *xvals, double *probability, double average,
      if ( cumul >= 0.5 && xmed==xlo ){
        xmed = xvals[i];
        pmed = probability[i];
-       std::cout << "Median: " << " xmed = " << xmed << " cumul = " << pmed << std::endl;
+       //std::cout << "Median: " << " xmed = " << xmed << " cumul = " << pmed << std::endl;
        xmed = xvals[i-1] + (xvals[i]-xvals[i-1]) * (0.5 - (cumul-probability[i]))/probability[i];
        pmed = probability[i-1] + (probability[i]-probability[i-1])/(xvals[i]-xvals[i-1]) * (xmed-xvals[i-1]);
 
-       std::cout << "Median: " << " xmed = " << xmed << " prob = " << pmed << std::endl;
+       //std::cout << "Median: " << " xmed = " << xmed << " prob = " << pmed << std::endl;
 
      }
 
@@ -196,22 +258,22 @@ struct Prob1d ProbContours1D(double *xvals, double *probability, double average,
      if ( cumul >= 0.841345 && xr1==xlo ){
        xr1 = xvals[i];
        pr1 = probability[i];
-       std::cout << "1 sig: " << " xr1 = " << xr1 << " cumul = " << cumul << std::endl;
+       //std::cout << "1 sig: " << " xr1 = " << xr1 << " cumul = " << cumul << std::endl;
        xr1 = xvals[i-1] + (xvals[i]-xvals[i-1]) * (0.841345 - (cumul-probability[i]))/probability[i];
        pr1 = probability[i-1] + (probability[i]-probability[i-1])/(xvals[i]-xvals[i-1]) * (xr1-xvals[i-1]);
 
-       std::cout << "1 sig: " << " xr1 = " << xr1 << " prob = " << pr1 << std::endl;
+       //std::cout << "1 sig: " << " xr1 = " << xr1 << " prob = " << pr1 << std::endl;
 
      }
      // check for 2sigma
      if ( cumul >= 0.97725 && xr2==xlo ){
        xr2 = xvals[i];
        pr2 = probability[i];
-       std::cout << "2 sig: " << " xr2 = " << xr2 << " cumul = " << cumul << std::endl;
+       //std::cout << "2 sig: " << " xr2 = " << xr2 << " cumul = " << cumul << std::endl;
        xr2 = xvals[i-1] + (xvals[i]-xvals[i-1]) * (0.97725 - (cumul-probability[i]))/probability[i];
        pr2 = probability[i-1] + (probability[i]-probability[i-1])/(xvals[i]-xvals[i-1]) * (xr2-xvals[i-1]);
 
-       std::cout << "2 sig: " << " xr2 = " << xr2 << " prob = " << pr2 << std::endl;
+       //std::cout << "2 sig: " << " xr2 = " << xr2 << " prob = " << pr2 << std::endl;
 
      }
      // check for 3sigma
@@ -224,7 +286,7 @@ struct Prob1d ProbContours1D(double *xvals, double *probability, double average,
        xr3 = xvals[i-1] + (xvals[i]-xvals[i-1]) * (0.9985 - (cumul-probability[i]))/probability[i];
        pr3 = probability[i-1] + (probability[i]-probability[i-1])/(xvals[i]-xvals[i-1]) * (xr3-xvals[i-1]);
 
-       std::cout << "3 sig: " << " xr3 = " << xr3 << " prob = " << 0.9985 << std::endl;
+       //std::cout << "3 sig: " << " xr3 = " << xr3 << " prob = " << 0.9985 << std::endl;
        
      }
    } // End for-i-loop
