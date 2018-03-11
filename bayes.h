@@ -14,3 +14,7 @@ struct Prob2d ProbContours2D( double *rvals, double *mvals, double **probability
 void GaussProbDist(double *xvals, double *prob, double mean, double sig, unsigned int numbins);
 
 double ProbCompare(double *prob1, double *prob2, int numbins);
+double ProbCompare2d(double **prob1, double **prob2, int numbins);
+
+
+void GaussProbDist2d(double *xvals, double *yvals, double **prob, double *mean, double *sig, unsigned int numbins);
