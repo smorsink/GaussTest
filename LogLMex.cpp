@@ -41,7 +41,10 @@ void mexFunction ( int numOutputs, mxArray *theOutput[], int numInputs, const mx
   /* VARIABLE DECLARATIONS AND INITIALIZATIONS */
   /*********************************************/
     
-
+   // double *probmean = dvector(1,NN);
+    //double *probsig = dvector(1,NN);
+    //double *meanvals = dvector(1,NN);
+    //double *sigvals = dvector(1,NN);
   //std::ifstream in;      // output stream; printing information to the output file
   //char in_file[256] = "Nothing!";
 
@@ -76,7 +79,6 @@ void mexFunction ( int numOutputs, mxArray *theOutput[], int numInputs, const mx
     long int *histogram = ivector(1,numbins);
     double *probability = dvector(1,numbins);
     double *prob1 = dvector(1,numbins);
- 
     double *xvals = dvector(1,numbins);
     double dx;
 
@@ -175,7 +177,17 @@ void mexFunction ( int numOutputs, mxArray *theOutput[], int numInputs, const mx
     theOutput[1] = mxCreateNumericArray(2, dimSize, mxDOUBLE_CLASS, mxREAL); // formatting/setting up the output
   
 
+	// Free Memory!
 
+	free_ivector(histogram,1,numbins);
+	free_dvector(probability,1,numbins);
+	free_dvector(prob1,1,numbins);
+	free_dvector(xvals,1,numbins);
+
+	free_dvector(probmean,1,NN);
+	free_dvector(probsig,1,NN);
+	free_dvector(meanvals,1,NN);
+	free_dvector(sigvals,1,NN);
 
  } 
 

@@ -26,10 +26,14 @@ disp('------ Init ------');
 %
 extPar.fixed.mean=0.0;
 extPar.fixed.sigma=1.0;
-extPar.fixed.bins=2000;
-
+% 10^4 data points
+extPar.fixed.bins=100000;
 extPar.fixed.numdatabins=10000;
 extPar.fixed.data = load('dataGausstest/data1d1e4.dat');
+% 10^2
+extPar.fixed.bins=10000;
+extPar.fixed.numdatabins=100;
+extPar.fixed.data = load('dataGausstest/data1d1e2.txt');
 %extPar.fixed.data = datafile(:);
 
 disp(extPar.fixed.data(1));

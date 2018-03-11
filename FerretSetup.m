@@ -46,7 +46,7 @@ par.general.NPop=2;
 par.general.popSize=200;
 %*************SMALL POPULATION FOR TESTING**********
 % for debugging purposes it helps to have smaller numbers for popSize and NPop=1
-par.general.NGen=500; % g [integer >= 1]: Maximum number of generations to run for.
+par.general.NGen=1000; % g [integer >= 1]: Maximum number of generations to run for.
 %par.general.NGen=250;
 % pop=4, indiv=250,  gen=1000
 % pop=5, indiv=300, gen=300
@@ -63,8 +63,8 @@ par.general.FLabels={'\chi^2'}; % [Cell array of strings]: Give names to some or
 
 %*************ADD DISTANCE*****************
 par.general.XLabels={'xmean', 'xsigma'};
-par.general.min=[       -2.0,            0.0];
-par.general.max=[       +2.0,            6.0];
+par.general.min=[       -1.0,            0.0];
+par.general.max=[       +1.0,            4.0];
  
 %par.general.cyclic=[5]; % [integer vector > 1]: Which parameters are cyclic?
 
